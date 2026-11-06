@@ -1,0 +1,172 @@
+import sqlite3
+import json
+from datetime import datetime
+
+
+class Database:
+
+    def __init__(self, path="vision_honda.db"):
+        self.conn = sqlite3.connect(path)
+        self.conn.row_factory = sqlite3.Row
+
+        self.conn.executescript("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password_hash TEXT,
+            role TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            phone TEXT,
+            model TEXT,
+            followup TEXT,
+            notes TEXT,
+            updated_at TEXT,
+            synced INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS vehicles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            model TEXT,
+            variant TEXT,
+            price REAL DEFAULT 0,
+            features TEXT,
+            updated_at TEXT,
+            synced INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS quotations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer TEXT,
+            details TEXT,
+            total REAL,
+            discount REAL,
+            payable REAL,
+            updated_at TEXT,
+            synced INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            model TEXT,
+            path TEXT,
+            document_type TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS sync_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            table_name TEXT,
+            record_id INTEGER,
+            created_at TEXT
+        );
+        """)
+
+        self.conn.commit()
+
+    def add_customer(self, name, phone, model,
+                     followup="", notes=""):
+
+        now = datetime.utcnow().isoformat()
+
+        cursor = self.conn.execute("""
+            INSERT INTO customers
+            (name, phone, model, followup, notes, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (name, phone, model, followup, notes, now))
+
+        self.conn.execute("""
+            INSERT INTO sync_queue
+            (table_name, record_id, created_at)
+            VALUES (?, ?, ?)
+        """, ("customers", cursor.lastrowid, now))
+
+        self.conn.commit()
+        return cursor.lastrowid
+
+    def get_customers(self):
+        return self.conn.execute("""
+            SELECT * FROM customers ORDER BY id DESC
+        """).fetchall()
+
+    def add_vehicle(self, model, variant, price=0,
+                    features=""):
+
+        now = datetime.utcnow().isoformat()
+
+        cursor = self.conn.execute("""
+            INSERT INTO vehicles
+            (model, variant, price, features, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (model, variant, price, features, now))
+
+        self.conn.execute("""
+            INSERT INTO sync_queue
+            (table_name, record_id, created_at)
+            VALUES (?, ?, ?)
+        """, ("vehicles", cursor.lastrowid, now))
+
+        self.conn.commit()
+        return cursor.lastrowid
+
+    def get_vehicles(self):
+        return self.conn.execute("""
+            SELECT * FROM vehicles ORDER BY model, variant
+        """).fetchall()
+
+    def save_quotation(self, customer, details,
+                       total, discount=0):
+
+        payable = max(0, total - discount)
+        now = datetime.utcnow().isoformat()
+
+        cursor = self.conn.execute("""
+            INSERT INTO quotations
+            (customer, details, total, discount,
+             payable, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            customer, json.dumps(details),
+            total, discount, payable, now
+        ))
+
+        self.conn.execute("""
+            INSERT INTO sync_queue
+            (table_name, record_id, created_at)
+            VALUES (?, ?, ?)
+        """, ("quotations", cursor.lastrowid, now))
+
+        self.conn.commit()
+        return cursor.lastrowid
+
+    def get_quotations(self):
+        return self.conn.execute("""
+            SELECT * FROM quotations ORDER BY id DESC
+        """).fetchall()
+
+    def add_document(self, title, model, path,
+                     document_type):
+
+        self.conn.execute("""
+            INSERT INTO documents
+            (title, model, path, document_type)
+            VALUES (?, ?, ?, ?)
+        """, (title, model, path, document_type))
+
+        self.conn.commit()
+
+    def get_documents(self):
+        return self.conn.execute("""
+            SELECT * FROM documents ORDER BY title
+        """).fetchall()
+
+    def get_pending_sync(self):
+        return self.conn.execute("""
+            SELECT * FROM sync_queue ORDER BY id
+        """).fetchall()
+
+    def close(self):
+        self.conn.close()
