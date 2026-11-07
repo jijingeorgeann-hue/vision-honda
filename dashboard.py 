@@ -1,0 +1,113 @@
+from datetime import datetime
+
+
+class DashboardManager:
+
+    ADMIN_MENU = [
+        "Sales Overview",
+        "Manage Staff",
+        "Manage Customers",
+        "Vehicle Catalogue",
+        "Update Price Lists",
+        "Manage Brochures",
+        "Manage Offers & Schemes",
+        "All Quotations",
+        "Finance & EMI",
+        "Comparison Reports",
+        "Sync Management",
+        "App Settings"
+    ]
+
+    STAFF_MENU = [
+        "My Sales Dashboard",
+        "Add Customer",
+        "Customer List",
+        "Vehicle Catalogue",
+        "Brochures & Price Lists",
+        "Create Quotation",
+        "Vehicle Comparison",
+        "Finance & EMI",
+        "My Quotations",
+        "Sync Status"
+    ]
+
+    def __init__(self, database):
+        self.conn = database.conn
+
+    def get_menu(self, role):
+
+        role = str(role).lower().strip()
+
+        if role == "admin":
+            return list(self.ADMIN_MENU)
+
+        if role == "staff":
+            return list(self.STAFF_MENU)
+
+        return []
+
+    def get_count(self, table):
+
+        allowed_tables = [
+            "customers",
+            "quotations",
+            "vehicle_catalogue",
+            "documents"
+        ]
+
+        if table not in allowed_tables:
+            return 0
+
+        try:
+            result = self.conn.execute(
+                "SELECT COUNT(*) FROM " + table
+            ).fetchone()
+
+            return result[0]
+
+        except Exception:
+            return 0
+
+    def get_sales_overview(self):
+
+        return {
+            "total_customers": self.get_count("customers"),
+            "total_quotations": self.get_count("quotations"),
+            "total_vehicles": self.get_count("vehicle_catalogue"),
+            "total_documents": self.get_count("documents"),
+            "generated_at": datetime.now().isoformat()
+        }
+
+    def get_recent_quotations(self, limit=10):
+
+        return self.conn.execute("""
+            SELECT * FROM quotations
+            ORDER BY id DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
+
+    def get_sync_summary(self):
+
+        try:
+            row = self.conn.execute("""
+                SELECT
+                    COUNT(*),
+                    SUM(CASE WHEN status='pending'
+                        THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN status='synced'
+                        THEN 1 ELSE 0 END)
+                FROM sync_queue
+            """).fetchone()
+
+            return {
+                "total": row[0] or 0,
+                "pending": row[1] or 0,
+                "synced": row[2] or 0
+            }
+
+        except Exception:
+            return {
+                "total": 0,
+                "pending": 0,
+                "synced": 0
+            }

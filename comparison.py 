@@ -1,0 +1,95 @@
+class ComparisonManager:
+
+    def __init__(self, database):
+        self.conn = database.conn
+
+        self.conn.execute("""
+        CREATE TABLE IF NOT EXISTS comparisons (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            vehicle_one INTEGER,
+            vehicle_two INTEGER,
+            notes TEXT,
+            created_at TEXT
+        )
+        """)
+        self.conn.commit()
+
+    def compare_variants(self, first, second):
+
+        fields = [
+            "model",
+            "variant",
+            "transmission",
+            "fuel",
+            "ex_showroom",
+            "features",
+            "specifications"
+        ]
+
+        result = {}
+
+        for field in fields:
+            a = first.get(field, "")
+            b = second.get(field, "")
+
+            result[field] = {
+                "vehicle_one": a,
+                "vehicle_two": b,
+                "same": a == b
+            }
+
+        price_one = float(first.get("ex_showroom", 0))
+        price_two = float(second.get("ex_showroom", 0))
+
+        result["price_difference"] = abs(
+            price_one - price_two
+        )
+
+        result["lower_price"] = (
+            first.get("variant")
+            if price_one < price_two
+            else second.get("variant")
+            if price_two < price_one
+            else "Same Price"
+        )
+
+        return result
+
+    def save_comparison(
+        self, title, vehicle_one,
+        vehicle_two, notes=""
+    ):
+        from datetime import datetime
+
+        cursor = self.conn.execute("""
+        INSERT INTO comparisons
+        (title, vehicle_one, vehicle_two,
+         notes, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """, (
+            title,
+            vehicle_one,
+            vehicle_two,
+            notes,
+            datetime.utcnow().isoformat()
+        ))
+
+        self.conn.commit()
+        return cursor.lastrowid
+
+    def get_comparisons(self):
+
+        return self.conn.execute("""
+        SELECT * FROM comparisons
+        ORDER BY id DESC
+        """).fetchall()
+
+    def delete_comparison(self, comparison_id):
+
+        self.conn.execute("""
+        DELETE FROM comparisons
+        WHERE id=?
+        """, (comparison_id,))
+
+        self.conn.commit()
