@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vision Honda - Customers</title>
+<style>
+body{font-family:Arial;background:#f2f4f8;margin:0;padding:20px}
+header{background:#b5122b;color:white;padding:18px;border-radius:12px}
+.card{background:white;padding:20px;border-radius:12px;margin-top:20px}
+input,textarea,button{width:100%;padding:13px;margin:8px 0;box-sizing:border-box;border:1px solid #ccc;border-radius:7px;font-size:16px}
+button{background:#b5122b;color:white;border:0;font-weight:bold}
+a{color:white;text-decoration:none}
+</style>
+</head>
+<body>
+<header>
+<h2>VISION HONDA</h2>
+<a href="/dashboard">← Back to Dashboard</a>
+</header>
+<div class="card">
+<h3>Add New Customer</h3>
+<form method="POST" action="/customers">
+<input name="name" placeholder="Customer Name" required>
+<input name="phone" placeholder="Mobile Number" type="tel">
+<input name="model" placeholder="Interested Honda Model">
+<input name="followup" type="date">
+<textarea name="notes" placeholder="Customer Notes"></textarea>
+<button type="submit">SAVE CUSTOMER</button>
+</form>
+</div>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vision Honda Dashboard</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f2f4f8;font-family:Arial;color:#222}
+header{background:#b5122b;color:white;padding:20px}
+header h2{margin:0}
+header p{margin:6px 0 0}
+main{padding:18px;max-width:900px;margin:auto}
+.card{background:white;padding:20px;border-radius:14px;margin-bottom:16px;box-shadow:0 3px 12px #0001}
+.count{font-size:36px;font-weight:bold;color:#b5122b}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.action{background:white;padding:20px 10px;border-radius:12px;text-align:center;text-decoration:none;color:#222;font-weight:bold;box-shadow:0 3px 12px #0001}
+.action span{display:block;font-size:25px;margin-bottom:8px}
+table{width:100%;border-collapse:collapse}
+td,th{text-align:left;padding:12px;border-bottom:1px solid #eee}
+.logout{color:white;text-decoration:none;float:right}
+@media(max-width:400px){.actions{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<a class="logout" href="/logout">Logout</a>
+<h2>VISION HONDA</h2>
+<p>Welcome, {{ username }} | {{ role }}</p>
+</header>
+<main>
+<div class="card">
+<h3>Total Customers</h3>
+<div class="count">{{ count }}</div>
+</div>
+<h3>Quick Actions</h3>
+<div class="actions">
+<a class="action" href="/customers"><span>👥</span>Customers</a>
+<a class="action" href="#"><span>🚘</span>Vehicle Catalogue</a>
+<a class="action" href="#"><span>📄</span>Quotations</a>
+<a class="action" href="/media"><span>📁</span>Media Centre</a>
+<a class="action" href="#"><span>💰</span>Finance / EMI</a>
+<a class="action" href="#"><span>📊</span>Sales Reports</a>
+</div>
+<div class="card">
+<h3>Recent Customers</h3>
+<table>
+<tr><th>Name</th><th>Phone</th><th>Model</th></tr>
+{% for customer in customers %}
+<tr>
+<td>{{ customer.name }}</td>
+<td>{{ customer.phone }}</td>
+<td>{{ customer.model }}</td>
+</tr>
+{% else %}
+<tr><td colspan="3">No customers added yet.</td></tr>
+{% endfor %}
+</table>
+</div>
+</main>
+</body>
+</html>
